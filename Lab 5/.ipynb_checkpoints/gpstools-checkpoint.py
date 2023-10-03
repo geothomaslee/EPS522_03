@@ -70,12 +70,14 @@ def get_coordinates(filename):
 
     return lat_avg, lon_avg, elev_avg
 
-def fit_all_velocities(folder,pattern):
+def fit_all_gps_velocities(folder,pattern):
     """
     Parameters
     ----------
-    folder: string giving the name of the folder containig the GPS files
-    pattern: glob pattern for naming all the GPS files
+    folder : string 
+        Gives the name of the folder containig the GPS files
+    pattern : string
+        glob pattern for naming all the GPS files
     
     Returns a pandas.DataFrame.Dataframe object containing information about each GPS station
     -------
@@ -123,4 +125,74 @@ def fit_all_velocities(folder,pattern):
                                    'Vertical Velocity (m/s)', 'Vertical Covariance Matrix'])
                                
     return gps_df
+
+def fit_all_tide_velocities(folder,pattern):
+    """
+    Parameters
+    ----------
+    folder : string 
+        Gives the name of the folder containig the GPS files
+    pattern : string
+        glob pattern for naming all the GPS files
+    type : sttring
+        fits
+    
+    Returns a pandas.DataFrame.Dataframe object containing information about each GPS station
+    -------
+    This function assumes that the folder containing the GPS files is inside of the folder from where this script is run.
+    """
+    
+    filekey = f'./{folder}/{pattern}'
+    files = glob.glob(filekey)
+    
+    site_list = []
+    lon_list = []
+    lat_list = []
+    elev_list = []
+    east_vel_list = []
+    east_uncer_list = []
+    north_vel_list = []
+    north_uncer_list = []
+    vert_vel_list = []
+    vert_uncer_list = []
+    
+    for file in files:
+        gps_data = pd.read_csv(file,
+                               sep='\s+')
         
+        site_name = gps_data['site'][0]
+        lon, lat, elev = get_coordinates(file)
+        east_vel, east_uncer, north_vel, north_uncer, vert_vel, vert_uncer = fit_velocities(file)
+        
+        site_list.append(site_name)
+        lon_list.append(lon)
+        lat_list.append(lat)
+        elev_list.append(elev)
+        east_vel_list.append(east_vel)
+        east_uncer_list.append(east_uncer)
+        north_vel_list.append(north_vel)
+        north_uncer_list.append(north_uncer)
+        vert_vel_list.append(vert_vel)
+        vert_uncer_list.append(vert_uncer)
+    
+    gps_df = pd.DataFrame(list(zip(site_list, lon_list, lat_list, elev_list, east_vel_list, 
+                                   east_uncer_list, north_vel_list, north_uncer_list, vert_vel_list, vert_uncer_list)),
+                          columns=['Site', 'Longitude', 'Latitude', 'Elevation', 
+                                   'East Velocity (m/s)', 'East Covariance Matrix',
+                                   'North Velocity (m/s)', 'North Covariance Matrix',
+                                   'Vertical Velocity (m/s)', 'Vertical Covariance Matrix'])
+                               
+    return gps_df
+
+
+
+def fit_all_velocities(folder,pattern,type='GNSS'):
+    if type == 'GNSS':
+        return_df = fit_all_gps_velocities(folder, pattern)
+    elif type == 'Tide':
+        return_df = fit_all_tide_velocities(folder, pattern)
+    else:
+        raise ValueError("Type must be GNSS or Tide")
+        
+    return return_df
+       

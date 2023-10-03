@@ -70,12 +70,14 @@ def get_coordinates(filename):
 
     return lat_avg, lon_avg, elev_avg
 
-def fit_all_velocities(folder,pattern):
+def fit_all_gps_velocities(folder,pattern):
     """
     Parameters
     ----------
-    folder: string giving the name of the folder containig the GPS files
-    pattern: glob pattern for naming all the GPS files
+    folder : string 
+        Gives the name of the folder containig the GPS files
+    pattern : string
+        glob pattern for naming all the GPS files
     
     Returns a pandas.DataFrame.Dataframe object containing information about each GPS station
     -------
@@ -123,4 +125,73 @@ def fit_all_velocities(folder,pattern):
                                    'Vertical Velocity (m/s)', 'Vertical Covariance Matrix'])
                                
     return gps_df
+
+def fit_tide_gauge(tlist, ylist):
+    """
+    Parameters
+    ----------
+    tlist: np.array of the times for the time series, as a decimal year
+    ylist: np.array of the tide-gauge timeseries y-values
+    
+    Returns least_squares_gauge and uncertainty
+    -------
+    Notes
+    """
+    def linear_func(x, a, b):
+        return a*x + b
+
+    least_squares_velocity, uncertainty = scipy.optimize.curve_fit(f = linear_func,
+                                                                   xdata = tlist,
+                                                                   ydata = ylist)
+    
+    return least_squares_velocity, uncertainty
+
+def fit_all_tide_velocities(folder,pattern):
+    """
+    Parameters
+    ----------
+    folder : string 
+        Gives the name of the folder containig the GPS files
+    pattern : string
+        glob pattern for naming all the GPS files
+    type : string
+        Either 'GNSS' or 'Tide'
+    
+    Returns a pandas.DataFrame.Dataframe object containing information about each tide gauge station
+    -------
+    This function assumes that the folder containing the tide files is inside of the folder from where this script is run.
+    """
+    
+    filekey = f'./{folder}/{pattern}'
+    files = glob.glob(filekey)
+    
+    tide_vel_list = []
+    tide_vel_uncer_list = []
+    
+    for file in files:
+        tide_data = pd.read_csv(file,
+                               sep=';',
+                               names=['year','mm','idk','also idk'])
         
+        tide_vel, tide_uncer = fit_tide_gauge(tide_data['year'],tide_data['mm'])
+        
+        tide_vel_list.append(tide_vel[0])
+        tide_vel_uncer_list.append(tide_uncer)
+    
+    tide_df = pd.DataFrame(list(zip(files, tide_vel_list, tide_uncer_list)),
+                          columns=['File','Sea Level Change (mm)',''
+                               
+    return 
+
+
+
+def fit_all_velocities(folder,pattern,type='GNSS'):
+    if type == 'GNSS':
+        return_df = fit_all_gps_velocities(folder, pattern)
+    elif type == 'Tide':
+        return_df = fit_all_tide_velocities(folder, pattern)
+    else:
+        raise ValueError("Type must be GNSS or Tide")
+        
+    return return_df
+       
