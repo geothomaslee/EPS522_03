@@ -2,6 +2,7 @@ import scipy
 import numpy as np
 import glob
 import pandas as pd
+import scipy.stats as stats
 
 def fit_timeseries(tlist, ylist):
     """
@@ -166,28 +167,40 @@ def fit_all_tide_velocities(folder,pattern):
     files = glob.glob(filekey)
     
     tide_vel_list = []
-    tide_vel_uncer_list = []
+    tide_uncer_list = []
     
     for file in files:
         tide_data = pd.read_csv(file,
                                sep=';',
                                names=['year','mm','idk','also idk'])
         
+        # Identifying outliers
+        tide_data_mm = tide_data['mm'].to_frame()
+        z_scores = stats.zscore(tide_data_mm)
+        abs_z_scores = np.abs(z_scores)
+        # Replacing outliers with Nan
+        filtered_entries = (abs_z_scores < 1).all(axis=1)
+        new_tide_data_mm = tide_data_mm[filtered_entries]
+        
+        # Dropping rows with Nan
+        tide_data['mm'] = new_tide_data_mm['mm']
+        tide_data = tide_data.dropna()
+        
+        # Calculating fit
         tide_vel, tide_uncer = fit_tide_gauge(tide_data['year'],tide_data['mm'])
         
         tide_vel_list.append(tide_vel[0])
-        tide_vel_uncer_list.append(tide_uncer)
+        tide_uncer_list.append(tide_uncer)
     
     tide_df = pd.DataFrame(list(zip(files, tide_vel_list, tide_uncer_list)),
-                          columns=['File','Sea Level Change (mm)',''
+                          columns=['File','Sea Level Change (mm)','Uncertainty Covariance Matrix'])
                                
-    return 
-
-
+    return tide_df
 
 def fit_all_velocities(folder,pattern,type='GNSS'):
     if type == 'GNSS':
         return_df = fit_all_gps_velocities(folder, pattern)
+        print('Using this one!')
     elif type == 'Tide':
         return_df = fit_all_tide_velocities(folder, pattern)
     else:
