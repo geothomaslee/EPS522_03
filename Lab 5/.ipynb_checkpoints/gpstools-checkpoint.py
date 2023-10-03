@@ -147,7 +147,7 @@ def fit_tide_gauge(tlist, ylist):
     
     return least_squares_velocity, uncertainty
 
-def fit_all_tide_velocities(folder,pattern):
+def fit_all_tide_velocities(folder,pattern, outlier_thresh=3):
     """
     Parameters
     ----------
@@ -179,7 +179,7 @@ def fit_all_tide_velocities(folder,pattern):
         z_scores = stats.zscore(tide_data_mm)
         abs_z_scores = np.abs(z_scores)
         # Replacing outliers with Nan
-        filtered_entries = (abs_z_scores < 1).all(axis=1)
+        filtered_entries = (abs_z_scores < outlier_thresh).all(axis=1)
         new_tide_data_mm = tide_data_mm[filtered_entries]
         
         # Dropping rows with Nan
@@ -197,12 +197,14 @@ def fit_all_tide_velocities(folder,pattern):
                                
     return tide_df
 
-def fit_all_velocities(folder,pattern,type='GNSS'):
+def fit_all_velocities(folder,pattern,type='GNSS',outlier_thresh=3):
     if type == 'GNSS':
+        if outlier_thresh:
+            print('Note: Cannot remove outliers from GPS Data')
         return_df = fit_all_gps_velocities(folder, pattern)
         print('Using this one!')
     elif type == 'Tide':
-        return_df = fit_all_tide_velocities(folder, pattern)
+        return_df = fit_all_tide_velocities(folder, pattern,outlier_thresh)
     else:
         raise ValueError("Type must be GNSS or Tide")
         
