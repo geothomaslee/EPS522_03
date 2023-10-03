@@ -216,7 +216,7 @@ def fit_all_velocities(folder,pattern,type='GNSS',outlier_thresh=3):
     """
         
     if type == 'GNSS':
-        if outlier_thresh:
+        if outlier_thresh != None:
             print('Note: Cannot remove outliers from GPS Data')
         return_df = fit_all_gps_velocities(folder, pattern)
     elif type == 'Tide':
