@@ -155,10 +155,11 @@ def fit_all_tide_velocities(folder,pattern, outlier_thresh=3):
         Gives the name of the folder containig the GPS files
     pattern : string
         glob pattern for naming all the GPS files
-    type : string
-        Either 'GNSS' or 'Tide'
+    outlier_thresh : int or float
+        Z-score above which data is called an outlier and will be thrown out
     
-    Returns a pandas.DataFrame.Dataframe object containing information about each tide gauge station
+    Returns : pandas.DataFrame.DataFrame
+        Data frame containing information about each tide gauge station
     -------
     This function assumes that the folder containing the tide files is inside of the folder from where this script is run.
     """
@@ -198,6 +199,22 @@ def fit_all_tide_velocities(folder,pattern, outlier_thresh=3):
     return tide_df
 
 def fit_all_velocities(folder,pattern,type='GNSS',outlier_thresh=3):
+    """
+    Parameters
+    ----------
+    folder : string
+        name or path of folder
+    pattern : string
+        glob pattern for file names
+    type : string
+        'GNSS' or 'Tide'
+    outlier_thresh : int or float
+        Z-score above which data will be thrown out from tide data
+    ----------    
+    Returns : return_df
+        The data frame from the fitting function of the selected data type
+    """
+        
     if type == 'GNSS':
         if outlier_thresh:
             print('Note: Cannot remove outliers from GPS Data')
