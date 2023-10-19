@@ -13,7 +13,7 @@ import netCDF4 as nc
 import datetime
 import scipy.optimize
 import time
-from multiprocessing import Pool
+from multiprocessing import Pool, get_context
 
 dataset = nc.Dataset('../../../sst.mon.mean.nc')
 
@@ -86,16 +86,55 @@ print(f'Method 1 time: {end_time - test_time}')
 
 test_2_time = time.perf_counter()
 
+def worker_function(dataset_path):
+    dataset = nc.Dataset(dataset_path)
+    
+    fit_dict = {}
+    for lon in lons:
+        print(f'Working on lon {lon}')
+        for lat in lats:
+            print(f'Working on lat {lat}')
+            
+            coord_tup = (lat, lon)
+            
+            if dataset['sst'][0,lat,lon].mask:
+                fit_dict[coord_tup] = np.nan
+            else:
+                timeseries = dataset['sst'][:,lat,lon]
+                fit_slope, y_int = fit_line_slope(times, timeseries)
+                fit_dict[coord_tup] = [fit_slope, y_int]
+                
+    return fit_dict
+                
 if __name__ == '__main__':
-    with Pool() as pool:
+    p = get_context("fork").Pool(4)
+    fit_dict = p.map(worker_function, '~/Documents/st.mon.mean.nc')
+    p.close()
+    
+print(fit_dict[0])
+
+
+"""
+if __name__ == '__main__':
+    
+    fit_dict = {}
+    
+    with Pool(processes=8) as pool:
         for lon in lons:
+            print(f'Working on lon {lon}')
             for lat in lats:
+                if lat == 0:
+                    print('Passing equator!')
+                
+                coord_tup = (lat, lon)
                 if dataset['sst'][0,lat,lon].mask:
-                    print(f'Lon {lon} Lat {lat} is continent!')
+                    fit_dict[coord_tup] = np.nan
                 else:
                     timeseries = dataset['sst'][:,lat,lon]
                     fit_slope, y_int = fit_line_slope(times, timeseries)
-                    print(fit_slope)
+                    fit_dict[coord_tup] = [fit_slope, y_int]
+                    
+"""
     
 print(f'Calculation time: {time.perf_counter() - test_2_time}')
 
