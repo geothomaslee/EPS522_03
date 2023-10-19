@@ -9,14 +9,11 @@ Created on Thu Oct 19 10:30:26 2023
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from ipywidgets import interactive
 import netCDF4 as nc
 import datetime
 import scipy.optimize
 import time
-import multiprocessing as mp
-
-
+from multiprocessing import Pool
 
 dataset = nc.Dataset('../../../sst.mon.mean.nc')
 
@@ -69,7 +66,6 @@ lats = np.arange(-90, 90, 1)
 lons = [-130, -129, -128]
 
 """
-
 # Method 1
 This is some testing I did to test if it would be faster to fix the longitude and only call part of the file every time.
 The answer is a DEFINITIVE yes. Method 1 takes 4 seconds to run through 3 longitudes and every latitude, Method 2 takes
@@ -88,16 +84,22 @@ end_time = time.perf_counter()
 print(f'Method 1 time: {end_time - test_time}')
 """
 
-# Method 2
-
 test_2_time = time.perf_counter()
-for lon in lons:
-    for lat in lats:
-        if dataset['sst'][0,lat,lon].mask:
-            print(f'Lon {lon} Lat {lat} is continent!')
-        else:
-            timeseries = dataset['sst'][:,lat,lon]
-            fit_slope, y_int = fit_line_slope(times, timeseries)
-            print(fit_slope)
+
+if __name__ == '__main__':
+    with Pool() as pool:
+        for lon in lons:
+            for lat in lats:
+                if dataset['sst'][0,lat,lon].mask:
+                    print(f'Lon {lon} Lat {lat} is continent!')
+                else:
+                    timeseries = dataset['sst'][:,lat,lon]
+                    fit_slope, y_int = fit_line_slope(times, timeseries)
+                    print(fit_slope)
     
 print(f'Calculation time: {time.perf_counter() - test_2_time}')
+
+
+
+
+
