@@ -132,6 +132,27 @@ class FaultModel:
                 latcij,loncij,depthcij = geod_transform.translate_flat(latcorner,loncorner,depthcorner,tot_eoffset,tot_noffset,tot_uoffset)
                 self.add_patch(latcij,loncij,depthcij,strike,dip,patchL,patchW,i,j)
                 
+            
+    def create_planar_model_cartesian(self,latcorner,loncorner,depthcorner,strike,dip,L,W,nL,nW):
+        #compute coordinates of every patch center and add this patch
+        patchL=L/nL
+        patchW=W/nW  
+        sindip=np.sin(np.radians(dip))
+        cosdip=np.cos(np.radians(dip))
+        sinstr=np.sin(np.radians(strike))
+        cosstr=np.cos(np.radians(strike))
+        for i in range(nL):
+            for j in range(nW):
+                tot_eoffset=(i+0.5)*patchL*sinstr+(j+0.5)*patchW*cosdip*cosstr
+                tot_noffset=(i+0.5)*patchL*cosstr-(j+0.5)*patchW*cosdip*sinstr
+                tot_uoffset=(j+0.5)*patchW*sindip                
+                
+                #get next patch-centered coordinate
+                latcij = latcorner + tot_noffset
+                loncij = loncorner + tot_eoffset
+                depthcij = depthcorner + tot_uoffset
+                self.add_patch(latcij,loncij,depthcij,strike,dip,patchL,patchW,i,j)
+                
     # specify the center of the fault instead of the top-left corner            
     def create_planar_model_centered(self,latc,lonc,depthc,strike,dip,L,W,nL,nW):
         #compute coordinates of every patch center and add this patch
@@ -167,7 +188,7 @@ class FaultModel:
         except IndexError:
             print('Error in find_patch: element not found')
             
-    def get_greens(self,lat,lon,kind='displacement'):
+    def get_greens(self,lat,lon,kind='displacement',coords='geographic'):
         # return the greens function matrix at specified input points
         #layout of displacement G is:
         #      ...patch1....
@@ -181,13 +202,15 @@ class FaultModel:
         #    . eEN_str eEN_dip
         #    . eEE_str eEE_dip
         if kind=='displacement': #default value
-            G = okada_greens.displacement_greens(lat,lon,self.latc,self.lonc,self.depth,self.strike,self.dip,self.L,self.W)
+            G = okada_greens.displacement_greens(lat,lon,self.latc,self.lonc,self.depth,self.strike,self.dip,self.L,self.W,coords=coords)
         elif kind=='strain':
-            G = okada_greens.strain_greens(lat,lon,self.latc,self.lonc,self.depth,self.strike,self.dip,self.L,self.W)    
+            G = okada_greens.strain_greens(lat,lon,self.latc,self.lonc,self.depth,self.strike,self.dip,self.L,self.W,coords=coords)    
         else:
             print("didn't understand 'kind' argument for get_greens:", kind, " exiting.")
             sys.exit(1)
         return G
+    
+    
 
     def get_selfstress(self,mu=30e3):
         # NOTE: THIS IS INCORRECT for actual stress computations. The current Okada greens function does not accept depths for the receiver faults.

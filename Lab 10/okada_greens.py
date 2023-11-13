@@ -14,7 +14,7 @@ import okada85
 import geod_transform
 
 #======================================================================
-def displacement_greens(lat,lon,lat0,lon0,depth,strike,dip,L,W,nu=0.25):
+def displacement_greens(lat,lon,lat0,lon0,depth,strike,dip,L,W,nu=0.25,coords='geographic'):
     # arguments are lists or 1D arrays of all fault patches to include in G
     # returns numpy array
     # each set of 3 rows corresponds to [E,N,U] displacements for a single obs. point
@@ -30,8 +30,13 @@ def displacement_greens(lat,lon,lat0,lon0,depth,strike,dip,L,W,nu=0.25):
     
     #get greens functions for strike and dip cases, these appear as columns in G
     for ipatch in range(npatch):
-        # convert lat,lon to local (e,n) coordinates (in meters) relative to patch center lat0[ipatch],lon0[ipatch]
-        e,n,u = geod_transform.geod2enu(lat,lon,alt,lat0[ipatch],lon0[ipatch],0.)
+        if coords == 'geographic':
+            # convert lat,lon to local (e,n) coordinates (in meters) relative to patch center lat0[ipatch],lon0[ipatch]
+            e,n,u = geod_transform.geod2enu(lat,lon,alt,lat0[ipatch],lon0[ipatch],0.)
+        else:
+            e = lon - lon0[ipatch]
+            n = lat - lat0[ipatch]
+            u = 0
 
         # okada subroutine calls -- turns out float() is important
         strcolE,strcolN,strcolU=okada85.displacement(e, n, float(depth[ipatch]), float(strike[ipatch]), float(dip[ipatch]), float(L[ipatch]), float(W[ipatch]),  0., 1., 0., nu)
@@ -51,7 +56,7 @@ def displacement_greens(lat,lon,lat0,lon0,depth,strike,dip,L,W,nu=0.25):
     return G
 
 #======================================================================
-def strain_greens(lat,lon,lat0,lon0,depth,strike,dip,L,W,nu=0.25):
+def strain_greens(lat,lon,lat0,lon0,depth,strike,dip,L,W,nu=0.25,coords='geographic'):
     # greens function matrix using strains at specified points instead of displacements
 
     #observation altitudes assumed zero by default
@@ -64,9 +69,14 @@ def strain_greens(lat,lon,lat0,lon0,depth,strike,dip,L,W,nu=0.25):
     
     #get greens functions for strike and dip cases, these appear as columns in G
     for ipatch in range(npatch):
-        # convert lat,lon to local (e,n) coordinates (in meters) relative to fault center lat0,lon0
-        e,n,u = geod_transform.geod2enu(lat,lon,alt,lat0[ipatch],lon0[ipatch],0.)
-
+        if coords == 'geographic':
+            # convert lat,lon to local (e,n) coordinates (in meters) relative to patch center lat0[ipatch],lon0[ipatch]
+            e,n,u = geod_transform.geod2enu(lat,lon,alt,lat0[ipatch],lon0[ipatch],0.)
+        else:
+            e = lon
+            n = lat
+            u = alt
+            
         # okada subroutine calls -- turns out float() is important
         strcolNN,strcolNE,strcolEN,strcolEE = okada85.strain(e, n, float(depth[ipatch]), float(strike[ipatch]), float(dip[ipatch]), float(L[ipatch]), float(W[ipatch]),  0., 1., 0., nu)
         dipcolNN,dipcolNE,dipcolEN,dipcolEE = okada85.strain(e, n, float(depth[ipatch]), float(strike[ipatch]), float(dip[ipatch]), float(L[ipatch]), float(W[ipatch]),  0., 1., 0., nu)
