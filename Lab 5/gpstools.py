@@ -3,6 +3,8 @@ import numpy as np
 import glob
 import pandas as pd
 import scipy.stats as stats
+import matplotlib.pyplot as plt
+
 
 def fit_timeseries(tlist, ylist):
     """
@@ -226,3 +228,42 @@ def fit_all_velocities(folder,pattern,type='GNSS',outlier_thresh=3):
         
     return return_df
        
+def plot_velocities (gps_df, east_vel_list, north_vel_list, vert_vel_list):
+    """
+    Parameters
+    ----------
+    east_vel: float
+        velocity of eastward movement of GPS station, calculated using the
+        fit_all_gps_velocities function
+    north_vel: float
+        velocity of northward movement of GPS station, calculated using the
+        fit_all_gps_velocities function
+    up_vel: float
+        velocity of upward movement of GPS station, calculated using the
+        fit_all_gps_velocities function
+    ----------
+    Function plots the velocities of the given sites on map, using arrows
+    for the east and north velocites and dots for the upwards velocities.
+    """
+    E = gps_df[east_vel_list]
+    N = gps_df[north_vel_list]
+    U = gps_df[vert_vel_list]
+
+    norm = np.sqrt(E**2 + N**2)
+    E_normalized = E / norm
+    N_normalized = N / norm
+    
+    plt.figure(figsize=(10, 10))
+    plt.quiver(gps_df['Longitude'], gps_df['Latitude'], E_normalized, N_normalized, scale=5, scale_units='xy', angles='xy', color='b', label='E and N velocities')
+    
+    plt.scatter(gps_df['Longitude'], gps_df['Latitude'], c=U, cmap='viridis', s=100, label='U Velocities')
+    
+    plt.xlim([gps_df['Longitude'].min() - 0.2, gps_df['Longitude'].max() + 0.2])
+    plt.ylim([gps_df['Latitude'].min() - 0.2, gps_df['Latitude'].max() + 0.2])
+    
+    plt.title('East, North, and Upwards Velocities of GPS Stations')
+    plt.xlabel('Longitude')
+    plt.ylabel('Latitude')
+    plt.legend()
+    plt.colorbar(label='Up Velocities')
+    plt.show()
